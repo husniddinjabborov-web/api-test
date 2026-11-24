@@ -132,12 +132,14 @@ add("web", "Brauzer to'liq ekrani (requestFullscreen)", false, async () => { awa
 add("web", "alert() oynasi ko'rinadi", false, async () => {
   alert("Bu alert() oynasi. OK ni bosing."); return "Oyna chiqqan bo'lishi kerak edi. CHIQMAGAN bo'lsa, dastur alert() ni buzgan: bu XATO";
 }, "Oyna chiqsa, OK ni bosing.");
-add("web", "confirm() haqiqiy qiymat qaytaradi", false, async () => {
-  const r = confirm("Test: «Bekor qilish» (Cancel) tugmasini bosing.");
-  need(typeof r === "boolean", "confirm() " + typeof r + " qaytardi (Promise bo'lsa, dastur uni buzgan va «O'chirilsinmi?» so'rovlari so'ramasdan o'tib ketadi)");
-  need(r === false, "Bekor qilish bosildi, lekin natija true");
-  return "Bekor qilish -> false: to'g'ri";
-}, "Chiqqan oynada «Bekor qilish» ni bosing.");
+add("web", "confirm() haqiqiy qiymat qaytaradi (OK va Bekor qilish)", false, async () => {
+  const a = confirm("1/2: bu oynada «OK» ni bosing.");
+  need(typeof a === "boolean", "confirm() " + typeof a + " qaytardi (Promise bo'lsa, dastur uni buzgan va «O'chirilsinmi?» so'rovlari so'ramasdan o'tib ketadi)");
+  need(a === true, "1/2: OK bosish kutilgan edi (natija true bo'lishi kerak), lekin natija: " + a + ". Siz «Bekor qilish» ni bosgan bo'lsangiz, qayta urinib, OK ni bosing");
+  const b = confirm("2/2: bu oynada «Bekor qilish» (Cancel) ni bosing.");
+  need(b === false, "2/2: Bekor qilish kutilgan edi (natija false bo'lishi kerak), lekin natija: " + b + ". Siz OK ni bosgan bo'lsangiz, qayta urinib, Bekor qilishni bosing");
+  return "OK -> true, Bekor qilish -> false: ikkalasi ham to'g'ri";
+}, "Ikki oyna chiqadi: avval OK, keyin Bekor qilish ni bosing.");
 add("web", "prompt() oynasi", false, async () => {
   const r = prompt("Test: 'salom' deb yozing va OK ni bosing"); need(r === "salom", "kutilgan 'salom', keldi: " + JSON.stringify(r)); return "matn qaytdi: to'g'ri";
 }, "Oynaga salom deb yozing.");
