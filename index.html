@@ -65,12 +65,12 @@ class Skip extends Error {}
 const skip = (m) => { throw new Skip(m); };
 const big = (bytes) => "x".repeat(bytes);
 
-async function needPerm(name) { if (!(await miniapp.hasPermission(name))) skip("«" + name + "» ruxsati berilmagan: o'tkazib yuborildi"); }
+async function needPerm(name) { if (!(await kiring.hasPermission(name))) skip("«" + name + "» ruxsati berilmagan: o'tkazib yuborildi"); }
 
 // Xato kodini kutadi. katta so'rovlarda server ulanishni uzishi mumkin: bunda ham o'tgan hisoblanadi.
 async function expectErr(method, params, code, tolerateReset) {
   let r;
-  try { r = await miniapp.call(method, params); }
+  try { r = await kiring.call(method, params); }
   catch (e) { if (tolerateReset) return "ulanish uzildi (server katta so'rovni rad etdi): to'g'ri"; throw e; }
   need(!r.ok, "xato kutilgan edi (" + code + "), lekin muvaffaqiyatli bo'ldi");
   need(r.error.code === code, "kutilgan " + code + ", keldi " + r.error.code + ": " + r.error.message);
@@ -149,10 +149,10 @@ add("web", "window.open: file: havola bloklanadi", false, async () => { window.o
 // ===================== B. FAYL SERVERI =====================
 group("srv", "B. Mini app fayl serveri");
 
-add("srv", "manifest.json to'g'ri turda beriladi", true, async () => { const r = await fetch("/manifest.json", { cache: "no-store" }); need(r.ok, "HTTP " + r.status); need((r.headers.get("content-type") || "").includes("json"), "Content-Type: " + r.headers.get("content-type")); const m = await r.json(); need(m.id === "com.test.apitest", "id mos kelmadi"); return "Content-Type: " + r.headers.get("content-type"); });
+add("srv", "kiring.json to'g'ri turda beriladi", true, async () => { const r = await fetch("/kiring.json", { cache: "no-store" }); need(r.ok, "HTTP " + r.status); need((r.headers.get("content-type") || "").includes("json"), "Content-Type: " + r.headers.get("content-type")); const m = await r.json(); need(m.id === "com.test.apitest", "id mos kelmadi"); return "Content-Type: " + r.headers.get("content-type"); });
 add("srv", "SPA: noma'lum manzil index.html qaytaradi", true, async () => { const r = await fetch("/yoq-sahifa-" + Date.now(), { cache: "no-store" }); need(r.ok, "HTTP " + r.status); need((await r.text()).includes("API Test"), "index.html qaytmadi"); return "HTTP 200, index.html"; });
-add("srv", "Range so'rovi (video/audio uchun; HTML dan tashqari fayllarda)", true, async () => { const r = await fetch("/manifest.json", { headers: { Range: "bytes=0-9" }, cache: "no-store" }); need(r.status === 206, "kutilgan 206, keldi " + r.status); need(r.headers.get("content-range"), "Content-Range yo'q"); need((await r.arrayBuffer()).byteLength === 10, "10 bayt kutilgan"); return "206, " + r.headers.get("content-range"); });
-add("srv", "Kesh o'chirilgan (no-store)", true, async () => { const r = await fetch("/manifest.json"); need((r.headers.get("cache-control") || "").includes("no-store"), "Cache-Control: " + r.headers.get("cache-control")); return "Cache-Control: no-store"; });
+add("srv", "Range so'rovi (video/audio uchun; HTML dan tashqari fayllarda)", true, async () => { const r = await fetch("/kiring.json", { headers: { Range: "bytes=0-9" }, cache: "no-store" }); need(r.status === 206, "kutilgan 206, keldi " + r.status); need(r.headers.get("content-range"), "Content-Range yo'q"); need((await r.arrayBuffer()).byteLength === 10, "10 bayt kutilgan"); return "206, " + r.headers.get("content-range"); });
+add("srv", "Kesh o'chirilgan (no-store)", true, async () => { const r = await fetch("/kiring.json"); need((r.headers.get("cache-control") || "").includes("no-store"), "Cache-Control: " + r.headers.get("cache-control")); return "Cache-Control: no-store"; });
 add("srv", "Yo'l hujumi (path traversal) to'siladi", true, async () => {
   for (const p of ["/..%2f..%2f..%2f..%2fWindows%2fwin.ini", "/%2e%2e/%2e%2e/%2e%2e/Windows/win.ini", "/..%5c..%5c..%5cWindows%5cwin.ini"]) {
     const r = await fetch(p, { cache: "no-store" }); const t = r.ok ? await r.text() : "";
@@ -164,46 +164,46 @@ add("srv", "Yo'l hujumi (path traversal) to'siladi", true, async () => {
 // ===================== C. HOST API: ASOSIY =====================
 group("api", "C. Host API: har bir metod");
 
-add("api", "window.miniapp va yangi metodlar mavjud", true, async () => { need(window.miniapp, "window.miniapp yo'q"); for (const k of ["storage","system","notify","clipboard","files","shell","window","hasPermission"]) need(miniapp[k], "miniapp." + k + " yo'q: Rust kodi yangilanganmi?"); return "SDK to'liq yuklangan"; });
-add("api", "getMe", true, async () => { const r = await miniapp.call("getMe"); need(r.ok, JSON.stringify(r.error)); const m = r.result; need(m.mini_app_id === "com.test.apitest", "mini_app_id mos kelmadi: " + m.mini_app_id); need(m.api_version >= 2, "api_version >= 2 kutilgan: " + m.api_version); return "API v" + m.api_version + ", " + m.app_name + " " + m.app_version + "\nRuxsatlar: " + (m.permissions.join(", ") || "yo'q"); });
+add("api", "window.kiring va yangi metodlar mavjud", true, async () => { need(window.kiring, "window.kiring yo'q"); for (const k of ["storage","system","notify","clipboard","files","shell","window","hasPermission"]) need(kiring[k], "kiring." + k + " yo'q: Rust kodi yangilanganmi?"); return "SDK to'liq yuklangan"; });
+add("api", "getMe", true, async () => { const r = await kiring.call("getMe"); need(r.ok, JSON.stringify(r.error)); const m = r.result; need(m.mini_app_id === "com.test.apitest", "mini_app_id mos kelmadi: " + m.mini_app_id); need(m.api_version >= 2, "api_version >= 2 kutilgan: " + m.api_version); return "API v" + m.api_version + ", " + m.app_name + " " + m.app_version + "\nRuxsatlar: " + (m.permissions.join(", ") || "yo'q"); });
 add("api", "storage: set, get, keys, remove, clear", true, async () => {
-  await miniapp.storage.clear();
-  await miniapp.storage.set("a", { x: 1 }); const v = await miniapp.storage.get("a"); need(v && v.x === 1, "get noto'g'ri");
-  need((await miniapp.storage.keys()).includes("a"), "keys'da yo'q");
-  await miniapp.storage.remove("a"); need((await miniapp.storage.get("a")) === null, "remove ishlamadi");
-  await miniapp.storage.set("b", 1); await miniapp.storage.clear(); need((await miniapp.storage.keys()).length === 0, "clear ishlamadi"); return "hammasi ishladi";
+  await kiring.storage.clear();
+  await kiring.storage.set("a", { x: 1 }); const v = await kiring.storage.get("a"); need(v && v.x === 1, "get noto'g'ri");
+  need((await kiring.storage.keys()).includes("a"), "keys'da yo'q");
+  await kiring.storage.remove("a"); need((await kiring.storage.get("a")) === null, "remove ishlamadi");
+  await kiring.storage.set("b", 1); await kiring.storage.clear(); need((await kiring.storage.keys()).length === 0, "clear ishlamadi"); return "hammasi ishladi";
 });
-add("api", "storage: yo'q kalit null qaytaradi", true, async () => { need((await miniapp.storage.get("yoq-kalit-" + Date.now())) === null, "null kutilgan"); return "null"; });
+add("api", "storage: yo'q kalit null qaytaradi", true, async () => { need((await kiring.storage.get("yoq-kalit-" + Date.now())) === null, "null kutilgan"); return "null"; });
 add("api", "storage: Unicode va murakkab qiymat", true, async () => {
-  const v = { s: "oʻzbek 😀 Привет", n: [1, 2.5, null, true], o: { a: { b: "c" } } }; await miniapp.storage.set("u", v);
-  need(canon(await miniapp.storage.get("u")) === canon(v), "qiymat o'zgarib qoldi: " + canon(await miniapp.storage.get("u"))); await miniapp.storage.clear(); return "qiymat aynan saqlandi";
+  const v = { s: "oʻzbek 😀 Привет", n: [1, 2.5, null, true], o: { a: { b: "c" } } }; await kiring.storage.set("u", v);
+  need(canon(await kiring.storage.get("u")) === canon(v), "qiymat o'zgarib qoldi: " + canon(await kiring.storage.get("u"))); await kiring.storage.clear(); return "qiymat aynan saqlandi";
 });
 add("api", "storage: 201 belgili kalit rad etiladi", true, async () => expectErr("storage.set", { key: "k".repeat(201), value: 1 }, "INVALID_KEY"));
 add("api", "storage: bo'sh kalit rad etiladi", true, async () => expectErr("storage.set", { key: "", value: 1 }, "INVALID_KEY"));
 add("api", "storage: 1 MB dan katta qiymat rad etiladi", true, async () => expectErr("storage.set", { key: "big", value: big(1100 * 1024) }, "PAYLOAD_TOO_LARGE", true));
 add("api", "storage: 5 MB chegarasi (STORAGE_FULL)", true, async () => {
-  await miniapp.storage.clear(); let code = null, n = 0;
-  try { for (; n < 8; n++) { const r = await miniapp.call("storage.set", { key: "k" + n, value: big(900 * 1024) }); if (!r.ok) { code = r.error.code; break; } } }
-  finally { await miniapp.storage.clear(); }
+  await kiring.storage.clear(); let code = null, n = 0;
+  try { for (; n < 8; n++) { const r = await kiring.call("storage.set", { key: "k" + n, value: big(900 * 1024) }); if (!r.ok) { code = r.error.code; break; } } }
+  finally { await kiring.storage.clear(); }
   need(code === "STORAGE_FULL", "STORAGE_FULL kutilgan, keldi: " + code); return n + " ta 900 KB dan keyin STORAGE_FULL: to'g'ri";
 });
-add("api", "window.setTitle", true, async () => { await miniapp.window.setTitle("API Test (ishladi)"); return "Oyna sarlavhasi o'zgargan bo'lishi kerak: ko'zda tekshiring"; });
+add("api", "window.setTitle", true, async () => { await kiring.window.setTitle("API Test (ishladi)"); return "Oyna sarlavhasi o'zgargan bo'lishi kerak: ko'zda tekshiring"; });
 add("api", "window.setTitle: bo'sh sarlavha rad etiladi", true, async () => expectErr("window.setTitle", { title: "  " }, "INVALID_PARAMS"));
 add("api", "window.setFullscreen: noto'g'ri qiymat rad etiladi", true, async () => expectErr("window.setFullscreen", { value: "ha" }, "INVALID_PARAMS"));
-add("api", "window.setFullscreen", false, async () => { await miniapp.window.setFullscreen(true); await wait(1200); await miniapp.window.setFullscreen(false); return "To'liq ekranga kirib chiqdi: ko'zda tekshiring"; });
+add("api", "window.setFullscreen", false, async () => { await kiring.window.setFullscreen(true); await wait(1200); await kiring.window.setFullscreen(false); return "To'liq ekranga kirib chiqdi: ko'zda tekshiring"; });
 
-add("api", "system.info", true, async () => { await needPerm("system.info"); const i = await miniapp.system.info(); for (const k of ["os","arch","app_name","app_version","api_version"]) need(i[k] !== undefined, k + " yo'q"); return JSON.stringify(i); });
+add("api", "system.info", true, async () => { await needPerm("system.info"); const i = await kiring.system.info(); for (const k of ["os","arch","app_name","app_version","api_version"]) need(i[k] !== undefined, k + " yo'q"); return JSON.stringify(i); });
 
-add("api", "clipboard: yozish va o'qish", true, async () => { await needPerm("clipboard.write"); await needPerm("clipboard.read"); const s = "apitest-" + Date.now(); await miniapp.clipboard.write(s); need((await miniapp.clipboard.read()) === s, "o'qilgan matn mos kelmadi"); return "yozildi va o'qildi"; });
-add("api", "clipboard: Unicode", true, async () => { await needPerm("clipboard.write"); await needPerm("clipboard.read"); const s = "oʻzbek 😀 Привет"; await miniapp.clipboard.write(s); need((await miniapp.clipboard.read()) === s, "Unicode buzildi"); return "Unicode to'g'ri"; });
+add("api", "clipboard: yozish va o'qish", true, async () => { await needPerm("clipboard.write"); await needPerm("clipboard.read"); const s = "apitest-" + Date.now(); await kiring.clipboard.write(s); need((await kiring.clipboard.read()) === s, "o'qilgan matn mos kelmadi"); return "yozildi va o'qildi"; });
+add("api", "clipboard: Unicode", true, async () => { await needPerm("clipboard.write"); await needPerm("clipboard.read"); const s = "oʻzbek 😀 Привет"; await kiring.clipboard.write(s); need((await kiring.clipboard.read()) === s, "Unicode buzildi"); return "Unicode to'g'ri"; });
 add("api", "clipboard: 1 MB dan katta matn rad etiladi", true, async () => { await needPerm("clipboard.write"); return expectErr("clipboard.write", { text: big(1100 * 1024) }, "PAYLOAD_TOO_LARGE", true); });
 add("api", "clipboard.write: 'text' yo'q bo'lsa rad etiladi", true, async () => { await needPerm("clipboard.write"); return expectErr("clipboard.write", {}, "INVALID_PARAMS"); });
 
 add("api", "notify.show: 'title' yo'q bo'lsa rad etiladi", true, async () => { await needPerm("notifications"); return expectErr("notify.show", { body: "x" }, "INVALID_PARAMS"); });
-add("api", "notify.show", false, async () => { await needPerm("notifications"); await miniapp.notify.show({ title: "API Test", body: "Windows bildirishnomasi ishladi" }); return "Yuborildi: Windows bildirishnomasi chiqdimi? Ko'zda tekshiring"; });
+add("api", "notify.show", false, async () => { await needPerm("notifications"); await kiring.notify.show({ title: "API Test", body: "Windows bildirishnomasi ishladi" }); return "Yuborildi: Windows bildirishnomasi chiqdimi? Ko'zda tekshiring"; });
 add("api", "notify.show: tezlik chegarasi", false, async () => {
   await needPerm("notifications"); let code = null, sent = 0;
-  for (let i = 0; i < 14; i++) { const r = await miniapp.call("notify.show", { title: "Chegara " + (i + 1) }); if (r.ok) sent++; else { code = r.error.code; break; } }
+  for (let i = 0; i < 14; i++) { const r = await kiring.call("notify.show", { title: "Chegara " + (i + 1) }); if (r.ok) sent++; else { code = r.error.code; break; } }
   need(code === "RATE_LIMITED", "RATE_LIMITED kutilgan, keldi: " + code); return sent + " ta yuborildi, keyin RATE_LIMITED: to'g'ri";
 }, "DIQQAT: ~10 ta bildirishnoma chiqadi. Daqiqada bir marta bajaring.");
 
@@ -213,42 +213,42 @@ add("api", "shell.openUrl: xavfli havolalar rad etiladi", true, async () => {
   return "5 ta xavfli/yaroqsiz havola rad etildi";
 });
 add("api", "shell.openUrl: 'url' yo'q bo'lsa rad etiladi", true, async () => { await needPerm("links.open"); return expectErr("shell.openUrl", {}, "INVALID_PARAMS"); });
-add("api", "shell.openUrl", false, async () => { await needPerm("links.open"); await miniapp.shell.openUrl("https://example.com"); return "Brauzerda example.com ochilishi kerak: ko'zda tekshiring"; });
+add("api", "shell.openUrl", false, async () => { await needPerm("links.open"); await kiring.shell.openUrl("https://example.com"); return "Brauzerda example.com ochilishi kerak: ko'zda tekshiring"; });
 
 add("api", "files.open: noto'g'ri 'as' rad etiladi", true, async () => { await needPerm("files.read"); return expectErr("files.open", { as: "hex" }, "INVALID_PARAMS"); });
 add("api", "files.save: 'content' yo'q bo'lsa rad etiladi", true, async () => { await needPerm("files.write"); return expectErr("files.save", { suggestedName: "a.txt" }, "INVALID_PARAMS"); });
 add("api", "files.save: yaroqsiz base64 rad etiladi", true, async () => { await needPerm("files.write"); return expectErr("files.save", { suggestedName: "a.bin", content: "!!!bu base64 emas!!!", as: "base64" }, "INVALID_PARAMS"); });
 add("api", "files.save: 10 MB dan katta fayl rad etiladi", true, async () => { await needPerm("files.write"); return expectErr("files.save", { suggestedName: "katta.txt", content: big(11 * 1024 * 1024) }, "FILE_TOO_LARGE", true); });
 add("api", "files.save: 14 MB dan katta so'rov rad etiladi", true, async () => { await needPerm("files.write"); return expectErr("files.save", { suggestedName: "katta.txt", content: big(15 * 1024 * 1024) }, "PAYLOAD_TOO_LARGE", true); });
-add("api", "files.open: matn fayl", false, async () => { await needPerm("files.read"); const f = await miniapp.files.open({ extensions: ["txt", "json", "md"] }); if (f === null) return "bekor qilindi (bu xato emas)"; need(typeof f.content === "string", "content matn emas"); return "nom: " + f.name + ", hajm: " + f.size + " bayt"; }, "Kichik .txt faylni tanlang. Oynada faqat txt/json/md ko'rinishi kerak (filtr).");
+add("api", "files.open: matn fayl", false, async () => { await needPerm("files.read"); const f = await kiring.files.open({ extensions: ["txt", "json", "md"] }); if (f === null) return "bekor qilindi (bu xato emas)"; need(typeof f.content === "string", "content matn emas"); return "nom: " + f.name + ", hajm: " + f.size + " bayt"; }, "Kichik .txt faylni tanlang. Oynada faqat txt/json/md ko'rinishi kerak (filtr).");
 add("api", "files.open: base64 rejimi", false, async () => {
-  await needPerm("files.read"); const f = await miniapp.files.open({ as: "base64" }); if (f === null) return "bekor qilindi (bu xato emas)";
+  await needPerm("files.read"); const f = await kiring.files.open({ as: "base64" }); if (f === null) return "bekor qilindi (bu xato emas)";
   const bin = atob(f.content); need(bin.length === f.size, "base64 uzunligi hajmga mos emas: " + bin.length + " != " + f.size); return f.name + ": " + f.size + " bayt to'g'ri dekodlandi";
 }, "Istalgan kichik fayl (masalan rasm) tanlang.");
 add("api", "files.open: ikkilik fayl matn sifatida rad etiladi", false, async () => {
-  await needPerm("files.read"); const r = await miniapp.call("files.open", {}); if (r.ok && r.result === null) return "bekor qilindi: qayta urining";
+  await needPerm("files.read"); const r = await kiring.call("files.open", {}); if (r.ok && r.result === null) return "bekor qilindi: qayta urining";
   need(!r.ok && r.error.code === "NOT_TEXT", "NOT_TEXT kutilgan, keldi: " + JSON.stringify(r.ok ? r.result && r.result.name : r.error)); return "NOT_TEXT qaytdi: to'g'ri";
 }, "Rasm yoki .exe kabi ikkilik fayl tanlang.");
 add("api", "files.open: 10 MB dan katta fayl rad etiladi", false, async () => {
-  await needPerm("files.read"); const r = await miniapp.call("files.open", { as: "base64" }); if (r.ok && r.result === null) return "bekor qilindi: qayta urining";
+  await needPerm("files.read"); const r = await kiring.call("files.open", { as: "base64" }); if (r.ok && r.result === null) return "bekor qilindi: qayta urining";
   need(!r.ok && r.error.code === "FILE_TOO_LARGE", "FILE_TOO_LARGE kutilgan, keldi: " + JSON.stringify(r.ok ? "fayl o'qildi" : r.error)); return "FILE_TOO_LARGE qaytdi: to'g'ri";
 }, "10 MB dan katta fayl tanlang.");
-add("api", "files.save: matn", false, async () => { await needPerm("files.write"); const r = await miniapp.files.save({ suggestedName: "apitest.txt", content: "Salom, bu API Test fayli.\n" }); return r.saved ? "saqlandi: " + r.name : "bekor qilindi (bu xato emas)"; }, "Oynada nomni o'zgartirmay saqlang.");
-add("api", "files.save: base64 (1x1 rasm)", false, async () => { await needPerm("files.write"); const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="; const r = await miniapp.files.save({ suggestedName: "nuqta.png", content: png, as: "base64" }); return r.saved ? "saqlandi: " + r.name + ". Faylni oching: rasm bo'lishi kerak" : "bekor qilindi (bu xato emas)"; });
+add("api", "files.save: matn", false, async () => { await needPerm("files.write"); const r = await kiring.files.save({ suggestedName: "apitest.txt", content: "Salom, bu API Test fayli.\n" }); return r.saved ? "saqlandi: " + r.name : "bekor qilindi (bu xato emas)"; }, "Oynada nomni o'zgartirmay saqlang.");
+add("api", "files.save: base64 (1x1 rasm)", false, async () => { await needPerm("files.write"); const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="; const r = await kiring.files.save({ suggestedName: "nuqta.png", content: png, as: "base64" }); return r.saved ? "saqlandi: " + r.name + ". Faylni oching: rasm bo'lishi kerak" : "bekor qilindi (bu xato emas)"; });
 add("api", "files.save va qayta ochish (round-trip)", false, async () => {
   await needPerm("files.write"); await needPerm("files.read"); const text = "round-trip " + Date.now() + "\noʻzbek 😀\n";
-  const s = await miniapp.files.save({ suggestedName: "roundtrip.txt", content: text }); if (!s.saved) return "bekor qilindi (bu xato emas)";
-  const f = await miniapp.files.open({ extensions: ["txt"] }); if (f === null) return "ochish bekor qilindi";
+  const s = await kiring.files.save({ suggestedName: "roundtrip.txt", content: text }); if (!s.saved) return "bekor qilindi (bu xato emas)";
+  const f = await kiring.files.open({ extensions: ["txt"] }); if (f === null) return "ochish bekor qilindi";
   need(f.content === text, "mazmun mos kelmadi"); return "saqlangan va ochilgan mazmun bir xil";
 }, "Avval saqlang, keyin ochish oynasida AYNAN o'sha faylni tanlang.");
 add("api", "files.save: .exe rad etiladi", false, async () => {
-  await needPerm("files.write"); const r = await miniapp.call("files.save", { suggestedName: "test.exe", content: "x" });
+  await needPerm("files.write"); const r = await kiring.call("files.save", { suggestedName: "test.exe", content: "x" });
   if (r.ok && r.result.saved === false) return "bekor qilindi: qayta bajaring va nomni o'zgartirmay saqlang";
   need(!r.ok && r.error.code === "BLOCKED_EXTENSION", "BLOCKED_EXTENSION kutilgan, keldi: " + JSON.stringify(r)); return "BLOCKED_EXTENSION qaytdi: to'g'ri";
 }, "Oynada nomni .exe qoldiring.");
 add("api", "files: bir vaqtda ikkita oyna (BUSY)", false, async () => {
-  await needPerm("files.read"); const first = miniapp.call("files.open", {}); await wait(500);
-  const second = await miniapp.call("files.open", {}); await first.catch(() => {});
+  await needPerm("files.read"); const first = kiring.call("files.open", {}); await wait(500);
+  const second = await kiring.call("files.open", {}); await first.catch(() => {});
   need(!second.ok && second.error.code === "BUSY", "BUSY kutilgan, keldi: " + JSON.stringify(second)); return "ikkinchi oyna BUSY bilan rad etildi";
 }, "Birinchi ochilgan oynani yoping (Bekor qilish).");
 
@@ -257,9 +257,9 @@ group("sec", "D. Xavfsizlik va ruxsatlar");
 
 add("sec", "Noto'g'ri token rad etiladi (401)", true, async () => { const r = await rawHost("getMe", { method: "POST", headers: { Authorization: "Bearer noto'g'ri-token", "Content-Type": "application/json" }, body: "{}" }); need(r.status === 401, "401 kutilgan, keldi " + r.status); return "401 UNAUTHORIZED"; });
 add("sec", "Tokensiz so'rov rad etiladi (401)", true, async () => { const r = await rawHost("getMe", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); need(r.status === 401, "401 kutilgan, keldi " + r.status); return "401 UNAUTHORIZED"; });
-add("sec", "POST bo'lmagan usul rad etiladi (405)", true, async () => { const r = await rawHost("getMe", { method: "GET", headers: { Authorization: "Bearer " + (miniapp.token || "x") } }); need(r.status === 405, "405 kutilgan, keldi " + r.status); return "405 METHOD_NOT_ALLOWED"; });
+add("sec", "POST bo'lmagan usul rad etiladi (405)", true, async () => { const r = await rawHost("getMe", { method: "GET", headers: { Authorization: "Bearer " + (kiring.token || "x") } }); need(r.status === 405, "405 kutilgan, keldi " + r.status); return "405 METHOD_NOT_ALLOWED"; });
 add("sec", "Xavfli metod nomlari mavjud emas", true, async () => { for (const m of ["runCommand","shell.exec","fs.readFile","fs.writeFile","registry.get","files.delete","process.spawn"]) await expectErr(m, {}, "METHOD_NOT_FOUND"); return "7 ta xavfli nom: hammasi METHOD_NOT_FOUND"; });
-add("sec", "Yaroqsiz JSON rad etiladi", true, async () => { const r = await rawHost("storage.get", { method: "POST", headers: { Authorization: "Bearer " + (miniapp.token || "x"), "Content-Type": "application/json" }, body: "{bu json emas" }); need(r.status === 400, "400 kutilgan, keldi " + r.status); return "400 INVALID_JSON"; });
+add("sec", "Yaroqsiz JSON rad etiladi", true, async () => { const r = await rawHost("storage.get", { method: "POST", headers: { Authorization: "Bearer " + (kiring.token || "x"), "Content-Type": "application/json" }, body: "{bu json emas" }); need(r.status === 400, "400 kutilgan, keldi " + r.status); return "400 INVALID_JSON"; });
 
 const GATED = [
   ["system.info", "system.info", {}], ["notifications", "notify.show", { title: "x" }], ["clipboard.write", "clipboard.write", { text: "x" }],
@@ -267,7 +267,7 @@ const GATED = [
 ];
 for (const [perm, method, params] of GATED) {
   add("sec", "Ruxsatsiz rejim: " + method + " (" + perm + ")", true, async () => {
-    if (await miniapp.hasPermission(perm)) skip("«" + perm + "» berilgan. Tekshirish uchun: «Mening ilovalarim», «Ruxsatlarni boshqarish», «Hammasini bekor qilish», so'ng testni qayta ishga tushiring");
+    if (await kiring.hasPermission(perm)) skip("«" + perm + "» berilgan. Tekshirish uchun: «Mening ilovalarim», «Ruxsatlarni boshqarish», «Hammasini bekor qilish», so'ng testni qayta ishga tushiring");
     return expectErr(method, params, "PERMISSION_DENIED");
   });
 }
@@ -278,9 +278,9 @@ const CHECK = [
   ["Kirish", ["«GitHub bilan kirish» qurilma kodini ko'rsatadi va brauzer ochiladi", "Kodni tasdiqlagach, dastur o'zi kirib ketadi", "Sarlavhada haqiqiy @login va avatar ko'rinadi", "«Kirmasdan ko'rish» do'konni ochadi", "Chiqish tugmasi kirish ekraniga qaytaradi", "Dasturni qayta ochganda kirgan holat saqlanadi"]],
   ["Do'kon", ["Katalog yuklanadi (yoki aniq xato va «Qayta yuklash» chiqadi)", "Qidiruv ilovalarni filtrlaydi", "Toifa chiplari ishlaydi", "Kartochka bosilsa, batafsil sahifa ochiladi", "«Eng ommabop» bo'limi to'g'ri ko'rinadi"]],
   ["O'rnatish va yangilash", ["Ilovani o'rnatish ishlaydi va «Mening ilovalarim»da paydo bo'ladi", "«Ochish» mini app oynasini ochadi", "Yangi versiya chiqarilganda «Yangilash» belgisi paydo bo'ladi", "«Yangilash» yangi versiyani o'rnatadi", "«O'chirish» ilovani va uning ma'lumotini o'chiradi", "Ruxsat so'rash oynasi birinchi ochilishda chiqadi", "«Ruxsatlarni boshqarish» ruxsatni bekor qiladi"]],
-  ["Nashr qilish", ["Ochiq repo'ni do'konga nashr qilish ishlaydi", "Yopiq repo uchun ochiq nusxa yaratiladi va oldindan ko'rish to'g'ri", "«Do'kondan olib tashlash» ishlaydi", "«Nusxani yangilash» yopiq repo uchun ishlaydi", "Repo nomi bo'yicha qo'lda o'rnatish ishlaydi"]],
+  ["Nashr qilish", ["Ochiq repo'ni do'konga nashr qilish ishlaydi", "Yopiq repo uchun ochiq nusxa yaratiladi va oldindan ko'rish to'g'ri", "«Do'kondan olib tashlash» ishlaydi", "Do'kondan olib tashlangan repo nashr panelida qoladi va qayta nashr qilsa bo'ladi", "«Nusxani yangilash» yopiq repo uchun ishlaydi", "Repo nomi bo'yicha qo'lda o'rnatish ishlaydi"]],
   ["Oyna va tashqi ko'rinish", ["Oyna kichraytirilganda dizayn buzilmaydi", "Kun/tun rejimi almashadi va eslab qolinadi", "Mini app oynasida tashqi havola tizim brauzerida ochiladi"]],
-  ["Ish stoli va fayllar", ["Ish stoliga yorliq yaratish ishlaydi", ".miniapp fayl ikki marta bosilganda mini app ochiladi", "Dastur ikkinchi marta ishga tushirilsa, mavjud oyna oldinga chiqadi (single-instance)"]],
+  ["Ish stoli va fayllar", ["Ish stoliga yorliq yaratish ishlaydi", "Ish stoli yorlig'i nomida kengaytma (.kiring) ko'rinmaydi", ".kiring fayl ikki marta bosilganda mini app ochiladi", "Win + R da kiringapp://open/egasi/repo havolasi mini app'ni ochadi (o'rnatilmagan bo'lsa, o'rnatishni so'raydi)", "Dastur ikkinchi marta ishga tushirilsa, mavjud oyna oldinga chiqadi (single-instance)"]],
 ];
 const CK_KEY = "apitest-checklist";
 let ckState = {}; try { ckState = JSON.parse(localStorage.getItem(CK_KEY) || "{}"); } catch (e) {}
@@ -328,7 +328,7 @@ async function runGroup(id) { for (const t of T.filter((x) => x.g === id && x.au
 async function showPerms() {
   try {
     const names = ["system.info", "notifications", "clipboard.write", "clipboard.read", "files.read", "files.write", "links.open"], got = [], miss = [];
-    for (const n of names) (await miniapp.hasPermission(n) ? got : miss).push(n);
+    for (const n of names) (await kiring.hasPermission(n) ? got : miss).push(n);
     $("perm").innerHTML = "Berilgan ruxsatlar: <b>" + (got.join(", ") || "yo'q") + "</b>" + (miss.length ? " · Berilmagan: <b>" + miss.join(", ") + "</b>" : "");
   } catch (e) { $("perm").textContent = "Ruxsatlarni o'qib bo'lmadi: " + e.message; }
 }
@@ -339,7 +339,7 @@ $("copy").onclick = async () => {
   const L = ["API Test natijasi", navigator.userAgent, $("perm").textContent, $("summary").textContent];
   for (const g of GROUPS) { L.push("", g.title); for (const t of T.filter((x) => x.g === g.id)) L.push((t.status === "ok" ? "[OK]    " : t.status === "bad" ? "[XATO]  " : t.status === "skip" ? "[SKIP]  " : "[ ]     ") + t.name + (t.detail ? "  ->  " + t.detail.replace(/\n/g, " | ") : "")); }
   const text = L.join("\n");
-  try { await miniapp.clipboard.write(text); alert("Natija nusxalandi. Uni suhbatga qo'ying."); }
+  try { await kiring.clipboard.write(text); alert("Natija nusxalandi. Uni suhbatga qo'ying."); }
   catch (e) { try { await navigator.clipboard.writeText(text); alert("Natija nusxalandi."); } catch (e2) { prompt("Quyidagi matnni qo'lda nusxalang:", text); } }
 };
 render(); showPerms();
